@@ -17,12 +17,10 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
+#include <iostream>
 #include <iterator>
-#include <tuple>
 #include <type_traits>
-#include <utility>
 
 namespace kdtree
 {
@@ -98,46 +96,39 @@ namespace internal
     const auto distance = policy.distance(query, *middle);
 
     if (n < k or distance < *out_distance) {
-      std::size_t i, j;
-
       if (n == k) {
         --n;
-        for (i = 0;; i = j) {
-          std::size_t l = i * 2 + 1;
-          std::size_t r = i * 2 + 2;
-          if (r < k) {
-            j = out_distance[l] > out_distance[r] ? l : r;
-          } else if (l < k) {
-            j = l;
-          } else {
+        for (std::size_t i = 1; i < n; i = (i << 1) | 1) {
+          std::size_t p = (i - 1) >> 1;
+
+          if (i + 1 < n and out_distance[i + 1] > out_distance[i]) {
+            ++i;
+          }
+
+          if (out_distance[n] > out_distance[i]) {
+            out_point[p] = out_point[n];
+            out_distance[p] = out_distance[n];
             break;
           }
 
-          if (out_distance[j] < out_distance[n]) {
-            break;
-          }
-
-          out_point[i] = out_point[j];
-          out_distance[i] = out_distance[j];
+          out_point[p] = out_point[i];
+          out_distance[p] = out_distance[i];
         }
-
-        out_point[i] = out_point[n];
-        out_distance[i] = out_distance[n];
       }
 
-      for (i = n; i > 0; i = j) {
-        j = (i - 1) / 2;
-        if (out_distance[j] > distance) {
+      for (std::size_t i = n; i > 0; i = (i - 1) >> 1) {
+        std::size_t p = (i - 1) >> 1;
+        if (out_distance[p] > distance) {
+          out_point[i] = *middle;
+          out_distance[i] = distance;
           break;
         }
 
-        out_point[i] = out_point[j];
-        out_distance[i] = out_distance[j];
+        out_point[i] = out_point[p];
+        out_distance[i] = out_distance[p];
       }
-
-      out_point[i] = *middle;
-      out_distance[i] = distance;
       ++n;
+      std::cout << "n: " << n << std::endl;
     }
 
     const auto get = [&](const auto &point) {
