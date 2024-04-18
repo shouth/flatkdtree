@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <iostream>
 #include <iterator>
 #include <type_traits>
 
@@ -96,39 +95,41 @@ namespace internal
     const auto distance = policy.distance(query, *middle);
 
     if (n < k or distance < *out_distance) {
-      if (n == k) {
-        --n;
-        for (std::size_t i = 1; i < n; i = (i << 1) | 1) {
-          std::size_t p = (i - 1) >> 1;
-
-          if (i + 1 < n and out_distance[i + 1] > out_distance[i]) {
+      if (n == k and --n > 0) {
+        std::size_t p = 0;
+        for (std::size_t i = 1; i < n; i = (p << 1) | 1) {
+          if (i + 1 < n and out_distance[i] < out_distance[i + 1]) {
             ++i;
           }
 
-          if (out_distance[n] > out_distance[i]) {
-            out_point[p] = out_point[n];
-            out_distance[p] = out_distance[n];
+          if (out_distance[i] < out_distance[n]) {
             break;
           }
 
-          out_point[p] = out_point[i];
           out_distance[p] = out_distance[i];
+          out_point[p] = out_point[i];
+          p = i;
         }
+        out_distance[p] = out_distance[n];
+        out_point[p] = out_point[n];
       }
 
-      for (std::size_t i = n; i > 0; i = (i - 1) >> 1) {
-        std::size_t p = (i - 1) >> 1;
-        if (out_distance[p] > distance) {
-          out_point[i] = *middle;
-          out_distance[i] = distance;
-          break;
-        }
+      {
+        std::size_t i = n;
+        while (i > 0) {
+          std::size_t p = (i - 1) >> 1;
+          if (distance < out_distance[p]) {
+            break;
+          }
 
-        out_point[i] = out_point[p];
-        out_distance[i] = out_distance[p];
+          out_distance[i] = out_distance[p];
+          out_point[i] = out_point[p];
+          i = p;
+        }
+        out_distance[i] = distance;
+        out_point[i] = *middle;
+        ++n;
       }
-      ++n;
-      std::cout << "n: " << n << std::endl;
     }
 
     const auto get = [&](const auto &point) {
