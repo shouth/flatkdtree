@@ -64,14 +64,14 @@ namespace internal
       return;
     }
 
-    auto middle = first + std::distance(first, last) / 2;
-    auto get = [&](const auto &point) { return policy.template get<Dimension>(point); };
+    const RandomAccessIterator middle = first + std::distance(first, last) / 2;
+    const auto get = [&](const auto &point) { return policy.template get<Dimension>(point); };
 
     std::nth_element(first, middle, last, [&](const auto &lhs, const auto &rhs) {
       return get(lhs) < get(rhs);
     });
 
-    static constexpr auto NextDimension = (Dimension + 1) % Policy::dimension;
+    static constexpr std::size_t NextDimension = (Dimension + 1) % Policy::dimension;
     construct_recursive<NextDimension>(first, middle, policy);
     construct_recursive<NextDimension>(middle + 1, last, policy);
   }
@@ -87,12 +87,14 @@ namespace internal
     const Policy &policy = { })
     -> std::size_t
   {
+    using distance_type = typename Policy::distance_type;
+
     if (first == last) {
       return n;
     }
 
-    const auto middle = first + std::distance(first, last) / 2;
-    const auto distance = policy.distance(query, *middle);
+    const RandomAccessIterator1 middle = first + std::distance(first, last) / 2;
+    const distance_type distance = policy.distance(query, *middle);
 
     if (n < k or distance < *out_distance) {
       if (n == k and --n > 0) {
@@ -143,13 +145,15 @@ namespace internal
     if (get(query) < get(*middle)) {
       n = search(first, middle);
 
-      if (get(query) + *out_distance > get(*middle)) {
+      auto dt = get(*middle) - get(query);
+      if (dt * dt < *out_distance) {
         n = search(middle + 1, last);
       }
     } else {
       n = search(middle + 1, last);
 
-      if (get(query) - *out_distance < get(*middle)) {
+      auto dt = get(query) - get(*middle);
+      if (dt * dt < *out_distance) {
         n = search(first, middle);
       }
     }
