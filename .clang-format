@@ -1,0 +1,9 @@
+BasedOnStyle: Webkit
+
+AlignConsecutiveMacros: Consecutive
+BreakBeforeBraces: Mozilla
+ContinuationIndentWidth: 2
+IndentWidth: 2
+PointerAlignment: Right
+SpaceAfterCStyleCast: true
+SpaceBeforeCpp11BracedList: false
