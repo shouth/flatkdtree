@@ -98,7 +98,7 @@ namespace internal
     }
 
     const RandomAccessIterator1 middle = first + std::distance(first, last) / 2;
-    const distance_type distance = policy.distance(query, *middle);
+    distance_type distance = policy.distance(query, *middle);
 
     if (n < k) {
       std::size_t i = n;
@@ -108,11 +108,11 @@ namespace internal
           break;
         }
 
-        out_distance[i] = out_distance[p];
-        out_point[i] = out_point[p];
+        out_distance[i] = std::move(out_distance[p]);
+        out_point[i] = std::move(out_point[p]);
         i = p;
       }
-      out_distance[i] = distance;
+      out_distance[i] = std::move(distance);
       out_point[i] = *middle;
       ++n;
     } else if (distance < *out_distance) {
@@ -126,11 +126,11 @@ namespace internal
           break;
         }
 
-        out_distance[p] = out_distance[i];
-        out_point[p] = out_point[i];
+        out_distance[p] = std::move(out_distance[i]);
+        out_point[p] = std::move(out_point[i]);
         p = i;
       }
-      out_distance[p] = distance;
+      out_distance[p] = std::move(distance);
       out_point[p] = *middle;
     }
 
