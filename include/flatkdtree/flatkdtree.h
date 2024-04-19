@@ -100,42 +100,38 @@ namespace internal
     const RandomAccessIterator1 middle = first + std::distance(first, last) / 2;
     const distance_type distance = policy.distance(query, *middle);
 
-    if (n < k or distance < *out_distance) {
-      if (n == k and --n > 0) {
-        std::size_t p = 0;
-        for (std::size_t i = 1; i < n; i = (p << 1) | 1) {
-          if (i + 1 < n and out_distance[i] < out_distance[i + 1]) {
-            ++i;
-          }
-
-          if (out_distance[i] < out_distance[n]) {
-            break;
-          }
-
-          out_distance[p] = out_distance[i];
-          out_point[p] = out_point[i];
-          p = i;
+    if (n < k) {
+      std::size_t i = n;
+      while (i > 0) {
+        std::size_t p = (i - 1) >> 1;
+        if (distance < out_distance[p]) {
+          break;
         }
-        out_distance[p] = out_distance[n];
-        out_point[p] = out_point[n];
+
+        out_distance[i] = out_distance[p];
+        out_point[i] = out_point[p];
+        i = p;
       }
-
-      {
-        std::size_t i = n;
-        while (i > 0) {
-          std::size_t p = (i - 1) >> 1;
-          if (distance < out_distance[p]) {
-            break;
-          }
-
-          out_distance[i] = out_distance[p];
-          out_point[i] = out_point[p];
-          i = p;
+      out_distance[i] = distance;
+      out_point[i] = *middle;
+      ++n;
+    } else if (distance < *out_distance) {
+      std::size_t p = 0;
+      for (std::size_t i = 1; i < n; i = (p << 1) | 1) {
+        if (i + 1 < n and out_distance[i] < out_distance[i + 1]) {
+          ++i;
         }
-        out_distance[i] = distance;
-        out_point[i] = *middle;
-        ++n;
+
+        if (out_distance[i] < distance) {
+          break;
+        }
+
+        out_distance[p] = out_distance[i];
+        out_point[p] = out_point[i];
+        p = i;
       }
+      out_distance[p] = distance;
+      out_point[p] = *middle;
     }
 
     const auto search = [&](auto first, auto last) {
