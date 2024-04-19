@@ -1,6 +1,6 @@
 # flatkdtree
 
-A yet another K-D tree library that uses a simple array. It supports C++11 and later.
+Yet another K-D tree library that uses a simple array. It supports C++11 and later.
 
 ## Example Usage
 
