@@ -21,8 +21,8 @@
 #include <iterator>
 #include <type_traits>
 
-namespace kdtree
-{
+namespace kdtree {
+
 template <typename T, typename Enabler = void>
 struct default_point_policy;
 
@@ -56,8 +56,7 @@ struct default_point_policy<std::array<Float, Size>, std::enable_if_t<std::is_fl
   }
 };
 
-namespace internal
-{
+namespace internal {
   template <typename Iterator>
   using iter_value_type = typename std::iterator_traits<Iterator>::value_type;
 
@@ -88,7 +87,7 @@ namespace internal
     RandomAccessIterator1 first, RandomAccessIterator1 last,
     RandomAccessIterator2 out_point, RandomAccessIterator3 out_distance,
     std::size_t k, std::size_t n, const internal::iter_value_type<RandomAccessIterator1> &query,
-    const PointPolicy &policy = { })
+    const PointPolicy &policy = {})
     -> std::size_t
   {
     using distance_type = typename PointPolicy::distance_type;
@@ -101,6 +100,7 @@ namespace internal
     distance_type distance = policy.distance(query, *middle);
 
     if (n < k) {
+      // Insert the point to the heap.
       std::size_t i = n;
       while (i > 0) {
         std::size_t p = (i - 1) >> 1;
@@ -116,6 +116,7 @@ namespace internal
       out_point[i] = *middle;
       ++n;
     } else if (distance < *out_distance) {
+      // Replace the root of the heap.
       std::size_t p = 0;
       for (std::size_t i = 1; i < n; i = (p << 1) | 1) {
         if (i + 1 < n and out_distance[i] < out_distance[i + 1]) {
@@ -157,14 +158,39 @@ namespace internal
   }
 }
 
+/**
+ * Construct a k-d tree on a range of points.
+ *
+ * @tparam RandomAccessIterator The type of the iterator.
+ * @tparam PointPolicy The policy for the point type.
+ * @param first The iterator to the first element.
+ * @param last The iterator to the last element.
+ * @param policy The policy for the point type.
+ */
 template <
   typename RandomAccessIterator,
   typename PointPolicy = default_point_policy<internal::iter_value_type<RandomAccessIterator>>>
-auto construct(RandomAccessIterator first, RandomAccessIterator last, const PointPolicy &policy = { })
+auto construct(RandomAccessIterator first, RandomAccessIterator last, const PointPolicy &policy = {})
 {
   internal::construct_recursive(first, last, policy);
 }
 
+/**
+ * Search k-nearest neighbors.
+ *
+ * @tparam RandomAccessIterator1 The type of the iterator for the points.
+ * @tparam RandomAccessIterator2 The type of the iterator for the output points.
+ * @tparam RandomAccessIterator3 The type of the iterator for the output distances.
+ * @tparam PointPolicy The policy for the point type.
+ * @param first The iterator to the first element.
+ * @param last The iterator to the last element.
+ * @param out_point The iterator to the first element of the output points.
+ * @param out_distance The iterator to the first element of the output distances.
+ * @param k The number of neighbors to search.
+ * @param query The query point.
+ * @param policy The policy for the point type.
+ * @return The number of found neighbors.
+ */
 template <
   typename RandomAccessIterator1, typename RandomAccessIterator2, typename RandomAccessIterator3,
   typename PointPolicy = default_point_policy<internal::iter_value_type<RandomAccessIterator1>>>
@@ -172,11 +198,12 @@ auto search_knn(
   RandomAccessIterator1 first, RandomAccessIterator1 last,
   RandomAccessIterator2 out_point, RandomAccessIterator3 out_distance,
   std::size_t k, const internal::iter_value_type<RandomAccessIterator1> &query,
-  const PointPolicy &policy = { })
+  const PointPolicy &policy = {})
   -> std::size_t
 {
   return internal::search_knn_recursive(first, last, out_point, out_distance, k, 0, query, policy);
 }
-}
 
-#endif  // FLATKDTREE_FLATKDTREE_H_
+} // namespace kdtree
+
+#endif // FLATKDTREE_FLATKDTREE_H_
