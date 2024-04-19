@@ -135,8 +135,8 @@ namespace internal
     }
 
     const auto search = [&](auto first, auto last) {
-      constexpr auto NextDimension = (Dimension + 1) % PointPolicy::dimension;
-      return search_knn_recursive<NextDimension>(first, last, out_point, out_distance, k, n, query, policy);
+      constexpr auto next_dimension = (Dimension + 1) % PointPolicy::dimension;
+      return search_knn_recursive<next_dimension>(first, last, out_point, out_distance, k, n, query, policy);
     };
 
     if (policy.template element_compare<Dimension>(query, *middle)) {
