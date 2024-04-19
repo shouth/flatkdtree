@@ -38,7 +38,7 @@ class benchmark
   {
     auto sum = std::accumulate(std::begin(_times), std::end(_times), 0.0);
     auto mean = sum / _times.size();
-    auto variance = std::accumulate(std::begin(_times), std::end(_times), 0.0, [&](auto acc, auto time) {
+    auto variance = std::accumulate(std::begin(_times), std::end(_times), 0.0, [&](double acc, double time) {
       return acc + (time - mean) * (time - mean);
     }) / _times.size();
     auto stddev = std::sqrt(variance);
@@ -60,18 +60,18 @@ int main(int argc, const char *argv[])
     return 1;
   }
 
-  auto count = std::atoi(argv[1]);
-  auto search = std::atoi(argv[2]);
-  auto iteration = argc >= 4 ? std::atoi(argv[3]) : 100;
+  int count = std::atoi(argv[1]);
+  int search = std::atoi(argv[2]);
+  long iteration = argc >= 4 ? std::atoi(argv[3]) : 100;
 
-  auto gen = std::random_device{};
-  auto engine = std::mt19937{ gen() };
-  auto dist = std::uniform_real_distribution<double>{ 0, 1e3 };
+  std::random_device gen;
+  std::mt19937_64 engine{ gen() };
+  std::uniform_real_distribution<double> dist{ 0, 1 };
 
   using Point = std::array<double, 2>;
 
-  auto ps = std::vector<Point>(count);
-  auto qs = std::vector<Point>(iteration);
+  std::vector<Point> ps(count);
+  std::vector<Point> qs(iteration);
 
   for (auto &p : ps) {
     p = { dist(gen), dist(gen) };

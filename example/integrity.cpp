@@ -7,6 +7,7 @@
 #include <random>
 
 #include <flatkdtree/flatkdtree.h>
+#include <vector>
 
 int main(int argc, const char *argv[])
 {
@@ -15,18 +16,18 @@ int main(int argc, const char *argv[])
     return 1;
   }
 
-  auto count = std::atoi(argv[1]);
-  auto search = std::atoi(argv[2]);
-  auto test = argc >= 4 ? std::atoi(argv[3]) : 100;
+  int count = std::atoi(argv[1]);
+  int search = std::atoi(argv[2]);
+  long test = argc >= 4 ? std::atoi(argv[3]) : 100;
 
-  auto gen = std::random_device{};
-  auto engine = std::mt19937{ gen() };
-  auto dist = std::uniform_real_distribution<double>{ 0, 1e3 };
+  std::random_device gen;
+  std::mt19937_64 engine{ gen() };
+  std::uniform_real_distribution<double> dist{ 0, 1 };
 
   using Point = std::array<double, 2>;
 
-  auto ps = std::vector<Point>(count);
-  auto qs = std::vector<Point>(test);
+  std::vector<Point> ps(count);
+  std::vector<Point> qs(test);
 
   for (auto &p : ps) {
     p = { dist(gen), dist(gen) };
@@ -37,14 +38,14 @@ int main(int argc, const char *argv[])
 
   std::cout << "integrity check" << std::endl;
 
-  auto ps2 = ps;
-  auto points = std::vector<Point>(search);
-  auto distances = std::vector<double>(search);
+  std::vector<Point> ps2 = ps;
+  std::vector<Point> points(search);
+  std::vector<double> distances(search);
 
   auto start = std::chrono::high_resolution_clock::now();
   kdtree::construct(std::begin(ps), std::end(ps));
   for (std::size_t i = 0; i < test; ++i) {
-    auto cmp = [&](const auto &lhs, const auto &rhs) {
+    auto cmp = [&](const Point &lhs, const Point &rhs) {
       auto policy = kdtree::default_point_policy<Point>{};
       return policy.distance(lhs, qs[i]) < policy.distance(rhs, qs[i]);
     };
@@ -60,12 +61,12 @@ int main(int argc, const char *argv[])
 
     std::partial_sort(std::begin(ps2), std::begin(ps2) + search, std::end(ps2), cmp);
 
-    auto [p1, p2] = std::mismatch(std::begin(ps2), std::begin(ps2) + search, std::begin(points));
-    if (p1 != std::begin(ps2) + search) {
-      std::size_t j = std::distance(std::begin(ps2), p1);
+    auto result = std::mismatch(std::begin(ps2), std::begin(ps2) + search, std::begin(points));
+    if (result.first != std::begin(ps2) + search) {
+      std::size_t j = std::distance(std::begin(ps2), result.first);
       std::cerr << "Mismatch at " << i << ", " << j << std::endl;
-      std::cerr << "    Expected: " << (*p1)[0] << ", " << (*p1)[1] << std::endl;
-      std::cerr << "    Actual: " << (*p2)[0] << ", " << (*p2)[1] << std::endl;
+      std::cerr << "    Expected: " << (*result.first)[0] << ", " << (*result.first)[1] << std::endl;
+      std::cerr << "    Actual: " << (*result.second)[0] << ", " << (*result.second)[1] << std::endl;
       return 1;
     }
   }

@@ -27,7 +27,7 @@ template <typename T, typename Enabler = void>
 struct default_point_policy;
 
 template <typename Float, std::size_t Size>
-struct default_point_policy<std::array<Float, Size>, std::enable_if_t<std::is_floating_point_v<Float>>>
+struct default_point_policy<std::array<Float, Size>, typename std::enable_if<std::is_floating_point<Float>::value>::type>
 {
   using point_type = std::array<Float, Size>;
   using distance_type = Float;
@@ -35,18 +35,18 @@ struct default_point_policy<std::array<Float, Size>, std::enable_if_t<std::is_fl
   static constexpr std::size_t dimension = Size;
 
   template <std::size_t Index>
-  constexpr auto element_compare(const point_type &p, const point_type &q) const -> bool
+  auto element_compare(const point_type &p, const point_type &q) const -> bool
   {
     return p[Index] < q[Index];
   }
 
   template <std::size_t Index>
-  constexpr auto element_distance(const point_type &p, const point_type &q) const -> distance_type
+  auto element_distance(const point_type &p, const point_type &q) const -> distance_type
   {
     return (p[Index] - q[Index]) * (p[Index] - q[Index]);
   }
 
-  constexpr auto distance(const point_type &p, const point_type &q) const -> distance_type
+  auto distance(const point_type &p, const point_type &q) const -> distance_type
   {
     distance_type dist = 0;
     for (std::size_t i = 0; i < Size; ++i) {
@@ -64,13 +64,15 @@ namespace internal {
   auto construct_recursive(
     RandomAccessIterator first, RandomAccessIterator last, const Policy &policy) -> void
   {
+    using point_type = typename Policy::point_type;
+
     if (first == last) {
       return;
     }
 
     const RandomAccessIterator middle = first + std::distance(first, last) / 2;
 
-    std::nth_element(first, middle, last, [&](const auto &p, const auto &q) {
+    std::nth_element(first, middle, last, [&](const point_type &p, const point_type &q) {
       return policy.template element_compare<Dimension>(p, q);
     });
 
@@ -135,7 +137,7 @@ namespace internal {
       out_point[p] = *middle;
     }
 
-    const auto search = [&](auto first, auto last) {
+    const auto search = [&](RandomAccessIterator1 first, RandomAccessIterator1 last) {
       constexpr auto next_dimension = (Dimension + 1) % PointPolicy::dimension;
       return search_knn_recursive<next_dimension>(first, last, out_point, out_distance, k, n, query, policy);
     };
@@ -171,7 +173,13 @@ template <
   typename RandomAccessIterator,
   typename PointPolicy = default_point_policy<internal::iter_value_type<RandomAccessIterator>>>
 auto construct(RandomAccessIterator first, RandomAccessIterator last, const PointPolicy &policy = {})
+  -> void
 {
+  using point_type = typename PointPolicy::point_type;
+
+  static_assert(std::is_same<internal::iter_value_type<RandomAccessIterator>, point_type>::value,
+    "kd-tree point type is not compatible with the policy");
+
   internal::construct_recursive(first, last, policy);
 }
 
@@ -201,6 +209,16 @@ auto search_knn(
   const PointPolicy &policy = {})
   -> std::size_t
 {
+  using point_type = typename PointPolicy::point_type;
+  using distance_type = typename PointPolicy::distance_type;
+
+  static_assert(std::is_same<internal::iter_value_type<RandomAccessIterator1>, point_type>::value,
+    "kd-tree point type is not compatible with the policy");
+  static_assert(std::is_same<internal::iter_value_type<RandomAccessIterator2>, point_type>::value,
+    "output point type is not compatible with the policy");
+  static_assert(std::is_same<internal::iter_value_type<RandomAccessIterator3>, distance_type>::value,
+    "output distance type is not compatible with the policy");
+
   return internal::search_knn_recursive(first, last, out_point, out_distance, k, 0, query, policy);
 }
 
