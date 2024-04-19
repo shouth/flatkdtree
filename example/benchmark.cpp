@@ -47,7 +47,7 @@ int main(int argc, const char *argv[])
         auto policy = kdtree::default_point_policy<Point>{};
         return policy.distance(lhs, qs[i]) < policy.distance(rhs, qs[i]);
       };
-      std::size_t found = kdtree::search_knn(std::begin(ps), std::end(ps), std::begin(points), std::end(distances), search, qs[i]);
+      std::size_t found = kdtree::search_knn(std::begin(ps), std::end(ps), std::begin(points), std::begin(distances), search, qs[i]);
       std::sort(std::begin(points), std::end(points), cmp);
 
       if (found != search) {
@@ -79,7 +79,7 @@ int main(int argc, const char *argv[])
     auto start = std::chrono::high_resolution_clock::now();
     kdtree::construct(std::begin(ps), std::end(ps));
     for (const auto &q : qs) {
-      kdtree::search_knn(std::begin(ps), std::end(ps), std::begin(points), std::end(distances), search, q);
+      kdtree::search_knn(std::begin(ps), std::end(ps), std::begin(points), std::begin(distances), search, q);
     }
     auto end = std::chrono::high_resolution_clock::now();
     auto ellapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1e6;
