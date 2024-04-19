@@ -30,22 +30,27 @@ template <typename Float, std::size_t Size>
 struct default_point_policy<std::array<Float, Size>, std::enable_if_t<std::is_floating_point_v<Float>>>
 {
   using point_type = std::array<Float, Size>;
-  using element_type = Float;
   using distance_type = Float;
 
   static constexpr std::size_t dimension = Size;
 
   template <std::size_t Index>
-  constexpr auto get(const point_type &point) const -> element_type
+  constexpr auto element_compare(const point_type &p, const point_type &q) const -> bool
   {
-    return point[Index];
+    return p[Index] < q[Index];
   }
 
-  constexpr auto distance(const point_type &lhs, const point_type &rhs) const -> distance_type
+  template <std::size_t Index>
+  constexpr auto element_distance(const point_type &p, const point_type &q) const -> distance_type
+  {
+    return (p[Index] - q[Index]) * (p[Index] - q[Index]);
+  }
+
+  constexpr auto distance(const point_type &p, const point_type &q) const -> distance_type
   {
     distance_type dist = 0;
     for (std::size_t i = 0; i < Size; ++i) {
-      dist += (lhs[i] - rhs[i]) * (lhs[i] - rhs[i]);
+      dist += (p[i] - q[i]) * (p[i] - q[i]);
     }
     return dist;
   }
@@ -65,10 +70,9 @@ namespace internal
     }
 
     const RandomAccessIterator middle = first + std::distance(first, last) / 2;
-    const auto get = [&](const auto &point) { return policy.template get<Dimension>(point); };
 
-    std::nth_element(first, middle, last, [&](const auto &lhs, const auto &rhs) {
-      return get(lhs) < get(rhs);
+    std::nth_element(first, middle, last, [&](const auto &p, const auto &q) {
+      return policy.template element_compare<Dimension>(p, q);
     });
 
     static constexpr std::size_t NextDimension = (Dimension + 1) % Policy::dimension;
@@ -79,15 +83,15 @@ namespace internal
   template <
     std::size_t Dimension = 0,
     typename RandomAccessIterator1, typename RandomAccessIterator2, typename RandomAccessIterator3,
-    typename Policy = default_point_policy<iter_value_type<RandomAccessIterator1>>>
+    typename PointPolicy = default_point_policy<iter_value_type<RandomAccessIterator1>>>
   auto search_knn_recursive(
     RandomAccessIterator1 first, RandomAccessIterator1 last,
     RandomAccessIterator2 out_point, RandomAccessIterator3 out_distance,
     std::size_t k, std::size_t n, const internal::iter_value_type<RandomAccessIterator1> &query,
-    const Policy &policy = { })
+    const PointPolicy &policy = { })
     -> std::size_t
   {
-    using distance_type = typename Policy::distance_type;
+    using distance_type = typename PointPolicy::distance_type;
 
     if (first == last) {
       return n;
@@ -134,26 +138,21 @@ namespace internal
       }
     }
 
-    const auto get = [&](const auto &point) {
-      return policy.template get<Dimension>(point);
-    };
     const auto search = [&](auto first, auto last) {
-      constexpr auto NextDimension = (Dimension + 1) % Policy::dimension;
+      constexpr auto NextDimension = (Dimension + 1) % PointPolicy::dimension;
       return search_knn_recursive<NextDimension>(first, last, out_point, out_distance, k, n, query, policy);
     };
 
-    if (get(query) < get(*middle)) {
+    if (policy.template element_compare<Dimension>(query, *middle)) {
       n = search(first, middle);
 
-      auto dt = get(*middle) - get(query);
-      if (dt * dt < *out_distance) {
+      if (policy.template element_distance<Dimension>(*middle, query) < *out_distance) {
         n = search(middle + 1, last);
       }
     } else {
       n = search(middle + 1, last);
 
-      auto dt = get(query) - get(*middle);
-      if (dt * dt < *out_distance) {
+      if (policy.template element_distance<Dimension>(*middle, query) < *out_distance) {
         n = search(first, middle);
       }
     }
@@ -164,20 +163,20 @@ namespace internal
 
 template <
   typename RandomAccessIterator,
-  typename Policy = default_point_policy<internal::iter_value_type<RandomAccessIterator>>>
-auto construct(RandomAccessIterator first, RandomAccessIterator last, const Policy &policy = { })
+  typename PointPolicy = default_point_policy<internal::iter_value_type<RandomAccessIterator>>>
+auto construct(RandomAccessIterator first, RandomAccessIterator last, const PointPolicy &policy = { })
 {
   internal::construct_recursive(first, last, policy);
 }
 
 template <
   typename RandomAccessIterator1, typename RandomAccessIterator2, typename RandomAccessIterator3,
-  typename Policy = default_point_policy<internal::iter_value_type<RandomAccessIterator1>>>
+  typename PointPolicy = default_point_policy<internal::iter_value_type<RandomAccessIterator1>>>
 auto search_knn(
   RandomAccessIterator1 first, RandomAccessIterator1 last,
   RandomAccessIterator2 out_point, RandomAccessIterator3 out_distance,
   std::size_t k, const internal::iter_value_type<RandomAccessIterator1> &query,
-  const Policy &policy = { })
+  const PointPolicy &policy = { })
   -> std::size_t
 {
   return internal::search_knn_recursive(first, last, out_point, out_distance, k, 0, query, policy);
