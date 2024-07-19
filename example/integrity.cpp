@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdlib>
@@ -46,8 +47,9 @@ int main(int argc, const char *argv[])
   kdtree::construct(std::begin(ps), std::end(ps));
   for (std::size_t i = 0; i < test; ++i) {
     auto cmp = [&](const Point &lhs, const Point &rhs) {
-      auto policy = kdtree::default_point_policy<Point>{};
-      return policy.distance(lhs, qs[i]) < policy.distance(rhs, qs[i]);
+      auto ldist = (lhs[0] - qs[i][0]) * (lhs[0] - qs[i][0]) + (lhs[1] - qs[i][1]) * (lhs[1] - qs[i][1]);
+      auto rdist = (rhs[0] - qs[i][0]) * (rhs[0] - qs[i][0]) + (rhs[1] - qs[i][1]) * (rhs[1] - qs[i][1]);
+      return ldist < rdist;
     };
     std::size_t found = kdtree::search_knn(std::begin(ps), std::end(ps), std::begin(points), std::begin(distances), search, qs[i]);
     std::sort(std::begin(points), std::end(points), cmp);
